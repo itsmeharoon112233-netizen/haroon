@@ -10,7 +10,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 let cache: { key: string; ready: boolean; at: number } | null = null;
-const TTL_MS = 5 * 60_000;
+// Re-check a working key hourly (keeps the test cost to pennies a month);
+// re-check a failing one every 5 minutes so the button appears soon after it's fixed.
+const TTL_READY_MS = 60 * 60_000;
+const TTL_NOT_READY_MS = 5 * 60_000;
 
 async function keyWorks(apiKey: string): Promise<boolean> {
   const provider = providerForKey(apiKey);
@@ -34,7 +37,7 @@ async function keyWorks(apiKey: string): Promise<boolean> {
     }
     if (provider === "openai") {
       // A valid OpenAI key can still have no credit. Send a tiny test request
-      // (costs a tiny fraction of a cent, at most once every 5 minutes).
+      // (costs a tiny fraction of a cent; at most hourly once the key works).
       const test = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
@@ -65,7 +68,7 @@ export async function GET() {
   const apiKey = getConfiguredKey();
   let ready = false;
   if (apiKey) {
-    if (cache && cache.key === apiKey && Date.now() - cache.at < TTL_MS) {
+    if (cache && cache.key === apiKey && Date.now() - cache.at < (cache.ready ? TTL_READY_MS : TTL_NOT_READY_MS)) {
       ready = cache.ready;
     } else {
       ready = await keyWorks(apiKey);
