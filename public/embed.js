@@ -28,8 +28,10 @@
     ".xpert-panel.open{display:flex}.xpert-panel iframe{flex:1;width:100%;border:0}" +
     ".xpert-close{position:absolute;top:8px;" + (side === "right" ? "right" : "left") + ":8px;display:none}" +
     "@media (max-width:640px){.xpert-panel{inset:0;width:100%;height:100%;border-radius:0}" +
-    ".xpert-panel.open~.xpert-btn{display:none}.xpert-close{display:flex;position:fixed;top:auto;bottom:16px;" + side + ":16px;" +
-    "z-index:2147483001;height:44px;padding:0 16px;border:0;border-radius:22px;background:" + PINE + ";color:#fff;font:600 14px system-ui,sans-serif;align-items:center}}";
+    // On phones the chat fills the screen; a full-width "Close chat" bar sits above it
+    // so it never covers the message box.
+    ".xpert-panel.open~.xpert-btn{display:none}.xpert-close{display:flex;position:static;order:-1;flex:none;width:100%;" +
+    "height:44px;justify-content:center;border:0;border-radius:0;background:" + PINE + ";color:#fff;font:600 14px system-ui,sans-serif;align-items:center;cursor:pointer}}";
 
   var style = document.createElement("style");
   style.textContent = css;
