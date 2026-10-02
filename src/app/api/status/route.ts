@@ -22,8 +22,12 @@ async function keyWorks(apiKey: string): Promise<boolean> {
       const raw = process.env.ANTHROPIC_API_KEY ?? "";
       const shape = {
         length: raw.length,
-        // The first 13 characters of a real key are the public prefix "sk-ant-api03-".
-        startsWith: raw.slice(0, 13),
+        // Only the key's type, never any of its secret characters.
+        kind: raw.startsWith("sk-ant-")
+          ? "claude"
+          : raw.startsWith("sk-proj-") || raw.startsWith("sk-")
+            ? "openai (wrong provider)"
+            : "unknown",
         hasSpacesOrNewlines: /\s/.test(raw),
         hasQuotes: /["'`]/.test(raw),
         nonAscii: /[^\x20-\x7e]/.test(raw),
