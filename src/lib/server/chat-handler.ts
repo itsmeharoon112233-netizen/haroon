@@ -1,6 +1,8 @@
 import { SYSTEM_PROMPT } from "../../config/ai";
 import type { ChatStreamEvent, ErrorCode } from "../../types/chat";
 import { openClaudeStream } from "./claude";
+import { openOpenAIStream } from "./openai";
+import { getConfiguredKey, providerForKey } from "./provider";
 import { ChatError, ERROR_STATUS, FRIENDLY_ERRORS } from "./errors";
 import { createRateLimiter, getClientIp } from "./rate-limit";
 import { validateMessages } from "./validation";
@@ -18,7 +20,7 @@ export interface ChatHandlerOptions {
  * Request/Response Web APIs so it can be unit-tested without Next.js.
  */
 export function createChatHandler(options: ChatHandlerOptions = {}) {
-  const getApiKey = options.getApiKey ?? (() => process.env.ANTHROPIC_API_KEY);
+  const getApiKey = options.getApiKey ?? getConfiguredKey;
   const log = options.log ?? ((msg: string) => console.error(`[chat] ${msg}`));
   const checkRate = createRateLimiter(options.rateLimit ?? { limit: 20, windowMs: 60_000 });
 
@@ -41,7 +43,7 @@ export function createChatHandler(options: ChatHandlerOptions = {}) {
 
     const apiKey = getApiKey()?.trim();
     if (!apiKey) {
-      log("ANTHROPIC_API_KEY is not set");
+      log("No API key is set (ANTHROPIC_API_KEY or OPENAI_API_KEY)");
       return errorResponse("missing_api_key");
     }
 
@@ -50,14 +52,18 @@ export function createChatHandler(options: ChatHandlerOptions = {}) {
 
     let events: AsyncGenerator<ChatStreamEvent, void, void>;
     try {
-      events = await openClaudeStream({
+      const streamOptions = {
         apiKey,
         system: SYSTEM_PROMPT,
         messages,
         signal: upstreamAbort.signal,
         apiUrl: options.apiUrl,
         fetchImpl: options.fetchImpl,
-      });
+      };
+      events =
+        providerForKey(apiKey) === "openai"
+          ? await openOpenAIStream(streamOptions)
+          : await openClaudeStream(streamOptions);
     } catch (err) {
       if (upstreamAbort.signal.aborted && !(err instanceof ChatError)) {
         return new Response(null, { status: 499 });

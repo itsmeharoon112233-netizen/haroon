@@ -31,7 +31,8 @@ Other scripts:
 
 | Name | Required | Purpose |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | **Yes** | Your Claude API key (platform.claude.com). Server-only, never sent to the browser. |
+| `ANTHROPIC_API_KEY` | **Yes** | One AI key: a Claude key (`sk-ant-…`, platform.claude.com) or an OpenAI key (`sk-…`). The app picks the provider from the key. Server-only. |
+| `OPENAI_MODEL` | No | Model used with an OpenAI key, default `gpt-5.4-mini`. |
 | `CLAUDE_MODEL` | No | Default `claude-sonnet-5-5`. Use `claude-haiku-4-5-20251001` for lower cost. |
 | `CLAUDE_MAX_TOKENS` | No | Max reply length, default `2048`. |
 | `LEAD_WEBHOOK_URL` | No | Where "Talk to an agent" inquiries are POSTed as JSON (n8n, Zapier, Make, Google Apps Script…). |

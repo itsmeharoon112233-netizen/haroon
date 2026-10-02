@@ -89,7 +89,7 @@ after(() => server.close());
 const quietLogs: string[] = [];
 function handler(opts: { key?: string; limit?: number } = {}) {
   return createChatHandler({
-    getApiKey: () => ("key" in opts ? opts.key : "sk-test-key"),
+    getApiKey: () => ("key" in opts ? opts.key : "sk-ant-test-key"),
     apiUrl,
     rateLimit: { limit: opts.limit ?? 1000, windowMs: 60_000 },
     log: (m) => quietLogs.push(m),
@@ -184,7 +184,7 @@ describe("POST /api/chat", () => {
     assert.deepEqual(events.at(-1), { type: "done", stopReason: "end_turn" });
 
     // Upstream request was well-formed.
-    assert.equal(lastHeaders["x-api-key"], "sk-test-key");
+    assert.equal(lastHeaders["x-api-key"], "sk-ant-test-key");
     assert.equal(lastHeaders["anthropic-version"], "2023-06-01");
     assert.equal(lastBody.stream, true);
     assert.equal(lastBody.messages.length, 3);
@@ -290,5 +290,57 @@ describe("POST /api/lead", () => {
     const h = createLeadHandler({ getWebhookUrl: () => "", log: () => {} });
     const res = await h(req({ name: "Ali", phone: "+92 300 1234567", interest: "Buying" }));
     assert.equal(res.status, 503);
+  });
+});
+
+describe("OpenAI provider (sk- keys)", () => {
+  const sseBody = (chunks: string[]) =>
+    new ReadableStream<Uint8Array>({
+      start(c) {
+        const enc = new TextEncoder();
+        for (const ch of chunks) c.enqueue(enc.encode(ch));
+        c.close();
+      },
+    });
+
+  it("streams ChatGPT replies through the same NDJSON format", async () => {
+    let sent: any = null;
+    let auth = "";
+    const fetchImpl = (async (_url: string, init: RequestInit) => {
+      sent = JSON.parse(init.body as string);
+      auth = (init.headers as Record<string, string>).authorization;
+      const ev = (o: object) => `data: ${JSON.stringify(o)}\n\n`;
+      return new Response(
+        sseBody([
+          ev({ choices: [{ delta: { role: "assistant", content: "" } }] }),
+          ev({ choices: [{ delta: { content: "Salaam! " } }] }),
+          ev({ choices: [{ delta: { content: "Plots in G-10…" }, finish_reason: "stop" }] }),
+          ev({ choices: [], usage: { prompt_tokens: 50, completion_tokens: 9 } }),
+          "data: [DONE]\n\n",
+        ]),
+        { headers: { "content-type": "text/event-stream" } },
+      );
+    }) as typeof fetch;
+    const h = createChatHandler({ getApiKey: () => "sk-proj-abc", fetchImpl, log: () => {} });
+    const events = await readNdjson(await h(chatRequest([{ role: "user", content: "plots?" }])));
+    assert.equal(events.filter((e) => e.type === "text").map((e: any) => e.text).join(""), "Salaam! Plots in G-10…");
+    assert.deepEqual(events.at(-2), { type: "usage", inputTokens: 50, outputTokens: 9 });
+    assert.equal(auth, "Bearer sk-proj-abc");
+    assert.match(sent.messages[0].content, /Ghandhara Estate/);
+    assert.equal(sent.messages.at(-1).content, "plots?");
+  });
+
+  it("maps no-credit and bad-key errors to friendly messages", async () => {
+    for (const [status, code, want] of [
+      [429, "insufficient_quota", "invalid_api_key"],
+      [401, "invalid_api_key", "invalid_api_key"],
+      [429, "rate_limit_exceeded", "rate_limited"],
+    ] as const) {
+      const fetchImpl = (async () =>
+        Response.json({ error: { code, message: "x" } }, { status })) as unknown as typeof fetch;
+      const h = createChatHandler({ getApiKey: () => "sk-proj-abc", fetchImpl, log: () => {} });
+      const res = await h(chatRequest([{ role: "user", content: "hi" }]));
+      assert.equal((await res.json()).error.code, want);
+    }
   });
 });
