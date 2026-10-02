@@ -1,0 +1,254 @@
+@import "tailwindcss";
+
+/* Dark mode is driven by a `.dark` class on <html> (set before paint in layout.tsx). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Design tokens. Palette is drawn from the region:
+ * Gandhara schist (grey-green stone), pine forests of the hills,
+ * cool limestone, and a brass accent like the key to a new home.
+ */
+:root {
+  --bg: #f4f6f3;
+  --surface: #ffffff;
+  --surface-2: #eceff0;
+  --ink: #1a2420;
+  --muted: #5b6863;
+  --line: #d9dfdb;
+  --pine: #1e5b4a;
+  --pine-hover: #174a3c;
+  --pine-soft: #e3eee9;
+  --on-pine: #ffffff;
+  --brass: #a8812f;
+  --danger: #b4372f;
+  --danger-soft: #fbeceb;
+  --code-bg: #f0f2f1;
+  --shadow: 0 1px 2px rgb(26 36 32 / 0.06), 0 8px 24px -12px rgb(26 36 32 / 0.18);
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #111715;
+  --surface: #171f1c;
+  --surface-2: #1e2825;
+  --ink: #e6ebe8;
+  --muted: #98a6a0;
+  --line: #2a3632;
+  --pine: #5fb39a;
+  --pine-hover: #78c4ad;
+  --pine-soft: #1c2f29;
+  --on-pine: #0d1512;
+  --brass: #d3b064;
+  --danger: #f08b82;
+  --danger-soft: #3a1f1d;
+  --code-bg: #0d1311;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 30px -12px rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-pine: var(--pine);
+  --color-pine-hover: var(--pine-hover);
+  --color-pine-soft: var(--pine-soft);
+  --color-on-pine: var(--on-pine);
+  --color-brass: var(--brass);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-code-bg: var(--code-bg);
+  --shadow-soft: var(--shadow);
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display-face), var(--font-body), ui-sans-serif, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-pine px-4 text-sm font-medium text-on-pine transition-colors hover:bg-pine-hover disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-secondary {
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 text-sm font-medium text-ink transition-colors hover:bg-surface-2;
+  }
+  /* Square icon button: 40px on desktop, 44px touch target on mobile */
+  .icon-btn {
+    @apply inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-muted transition-colors hover:bg-surface-2 hover:text-ink disabled:pointer-events-none disabled:opacity-40 sm:size-10;
+  }
+  .field {
+    @apply w-full rounded-xl border border-line bg-bg px-3.5 py-2.5 text-[16px] text-ink placeholder:text-muted/70 transition-colors focus:border-pine focus:outline-none sm:text-sm;
+  }
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+:focus-visible {
+  outline: 2px solid var(--pine);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--pine) 25%, transparent);
+}
+
+/* Thin, quiet scrollbars */
+.scroll-quiet {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+/* Surveyor's plot grid behind the welcome screen */
+.plot-grid {
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: center top;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, #000 20%, transparent 75%);
+}
+
+/* ---------- Markdown inside AI replies ---------- */
+.prose-xpert {
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.prose-xpert > * + * {
+  margin-top: 0.85em;
+}
+.prose-xpert h1,
+.prose-xpert h2,
+.prose-xpert h3,
+.prose-xpert h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 1.4em;
+}
+.prose-xpert h1 { font-size: 1.35em; }
+.prose-xpert h2 { font-size: 1.2em; }
+.prose-xpert h3 { font-size: 1.05em; }
+.prose-xpert ul,
+.prose-xpert ol {
+  padding-left: 1.4em;
+}
+.prose-xpert ul { list-style: disc; }
+.prose-xpert ol { list-style: decimal; }
+.prose-xpert li + li { margin-top: 0.3em; }
+.prose-xpert li::marker { color: var(--muted); }
+.prose-xpert a {
+  color: var(--pine);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-xpert strong { font-weight: 650; }
+.prose-xpert blockquote {
+  border-left: 3px solid var(--brass);
+  padding-left: 1em;
+  color: var(--muted);
+}
+.prose-xpert hr { border-color: var(--line); }
+.prose-xpert :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 0.1em 0.35em;
+}
+.prose-xpert .table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.prose-xpert table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.93em;
+}
+.prose-xpert th,
+.prose-xpert td {
+  text-align: left;
+  padding: 0.55em 0.8em;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.prose-xpert th {
+  background: var(--surface-2);
+  font-weight: 600;
+}
+.prose-xpert tr:last-child td { border-bottom: 0; }
+
+/* Blinking caret at the end of a streaming reply */
+.streaming-caret > :last-child::after {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.12em;
+  background: var(--pine);
+  border-radius: 2px;
+  animation: caret 1s steps(2, start) infinite;
+}
+@keyframes caret {
+  to { visibility: hidden; }
+}
+
+/* Typing dots */
+.typing-dot {
+  animation: typing 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes typing {
+  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-2px); }
+}
+
+/* New messages rise in gently */
+.message-enter {
+  animation: rise 0.22s ease-out both;
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+}
+
+.toast-enter {
+  animation: toast-in 0.2s ease-out both;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+}
+
+dialog::backdrop {
+  background: rgb(10 16 14 / 0.45);
+  backdrop-filter: blur(2px);
+}
+dialog[open] {
+  animation: rise 0.18s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
