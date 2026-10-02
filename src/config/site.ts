@@ -30,24 +30,51 @@ export const siteConfig = {
     office: "", // e.g. your office address in Islamabad
   },
 
-  /** Clickable starter prompts on the welcome screen. */
+  /**
+   * Clickable options on the welcome screen.
+   * title = card heading, description = short line under it,
+   * prompt = the message sent to Xpert AI when the card is tapped.
+   */
   examplePrompts: [
     {
-      title: "Find a home",
-      prompt:
-        "I'm looking to buy a house. Help me work out what I should look for and what questions to ask.",
+      title: "Buy a home",
+      description: "Houses for sale",
+      prompt: "I want to buy a house. Please ask me what you need to know (area, size, budget) and help me find the right option.",
     },
     {
-      title: "Buying a plot",
-      prompt: "What should I check before buying a residential plot?",
+      title: "Rent a home",
+      description: "Houses & apartments for rent",
+      prompt: "I'm looking for a house or apartment to rent. Please ask me about area, size, budget and move-in date, and help me find a suitable place.",
+    },
+    {
+      title: "Residential plots",
+      description: "Plots to build your home",
+      prompt: "I'm interested in buying a residential plot. Please ask me about the area, plot size and budget, and tell me what to check before buying.",
+    },
+    {
+      title: "Commercial plots",
+      description: "Land for business & investment",
+      prompt: "I'm interested in commercial plots or commercial land. Please ask me about purpose, location and budget, and guide me on what to look for.",
+    },
+    {
+      title: "Apartments",
+      description: "Flats to buy",
+      prompt: "I want to buy an apartment. Please ask me about area, number of rooms and budget, and help me compare options.",
+    },
+    {
+      title: "Farmhouses",
+      description: "Farmhouses & agricultural land",
+      prompt: "I'm interested in a farmhouse or agricultural land. Please ask me about location, size and budget, and explain what to check.",
     },
     {
       title: "Sell my property",
-      prompt: "I want to sell my property. What's the process and how do I prepare it?",
+      description: "Get it listed with us",
+      prompt: "I want to sell my property. Please ask me about the property and explain the selling process with Ghandhara Estate.",
     },
     {
       title: "Overseas Pakistanis",
-      prompt: "I live abroad. How can I safely buy or manage property in Islamabad from overseas?",
+      description: "Buy or manage from abroad",
+      prompt: "I live abroad. How can I safely buy, rent out or manage property in Islamabad or Rawalpindi from overseas?",
     },
   ],
 } as const;
