@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
         source: "/embed.js",
         headers: [
           { key: "Access-Control-Allow-Origin", value: "*" },
-          { key: "Cache-Control", value: "public, max-age=3600" },
+          { key: "Cache-Control", value: "public, max-age=300" },
         ],
       },
     ];
