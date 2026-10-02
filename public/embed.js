@@ -95,18 +95,8 @@
     }
   });
 
-  // Only show the chat button once the assistant is fully set up (API key added),
-  // so visitors never see a broken chat.
-  fetch(origin + "/api/status", { cache: "no-store" })
-    .then(function (r) {
-      return r.ok ? r.json() : { ready: false };
-    })
-    .then(function (s) {
-      if (!s || !s.ready) return;
-      document.body.appendChild(panel);
-      document.body.appendChild(btn);
-    })
-    .catch(function () {
-      /* chat service unreachable: keep the button hidden */
-    });
+  // Always show the chat button. If the AI service isn't available (no key or
+  // no credit), the chat itself shows a friendly message with contact details.
+  document.body.appendChild(panel);
+  document.body.appendChild(btn);
 })();

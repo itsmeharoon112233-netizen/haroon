@@ -1,11 +1,15 @@
+import { siteConfig } from "../../config/site";
 import type { ErrorCode } from "../../types/chat";
+
+const { phone, email } = siteConfig.contact;
+/** Shown when the AI can't answer at all, so visitors can still reach the team. */
+const REACH_US = [phone && `call or WhatsApp ${phone}`, email && `email ${email}`].filter(Boolean).join(" or ");
+const OFFLINE = `Xpert AI is offline at the moment.${REACH_US ? ` For help right now, ${REACH_US}.` : " Please try again later."}`;
 
 /** User-facing messages. Never include secrets or raw upstream details. */
 export const FRIENDLY_ERRORS: Record<ErrorCode, string> = {
-  missing_api_key:
-    "Xpert AI isn't set up yet — the site owner needs to add the Claude API key. Please try again later.",
-  invalid_api_key:
-    "Xpert AI can't connect to its AI service right now because of a configuration problem. Please try again later.",
+  missing_api_key: OFFLINE,
+  invalid_api_key: OFFLINE,
   rate_limited: "Lots of people are chatting right now. Please wait a moment and try again.",
   overloaded: "The AI service is busy at the moment. Please try again in a few seconds.",
   bad_request: "That message couldn't be processed. Try rephrasing it or starting a new chat.",
