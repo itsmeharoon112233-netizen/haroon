@@ -4,6 +4,7 @@
 // Reveals only a yes/no, never the key itself.
 import { aiConfig } from "@/config/ai";
 import { getConfiguredKey, providerForKey } from "@/lib/server/provider";
+import { classifyOpenAIError, openaiConfig } from "@/lib/server/openai";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,28 @@ async function keyWorks(apiKey: string): Promise<boolean> {
         `[status] ${provider} rejected the API key (${res.status}) length=${apiKey.length} hasWhitespace=${/\s/.test(apiKey)}`,
       );
       return false;
+    }
+    if (provider === "openai") {
+      // A valid OpenAI key can still have no credit. Send a tiny test request
+      // (costs a tiny fraction of a cent, at most once every 5 minutes).
+      const test = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: openaiConfig.model,
+          messages: [{ role: "user", content: "ok" }],
+          max_completion_tokens: 32,
+        }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!test.ok) {
+        const body = (await test.json().catch(() => ({}))) as { error?: { code?: string; type?: string; message?: string } };
+        const code = classifyOpenAIError(test.status, body.error?.code ?? body.error?.type, body.error?.message);
+        if (code === "invalid_api_key") {
+          console.error(`[status] openai account not usable: ${test.status} ${body.error?.code ?? ""} ${body.error?.message ?? ""}`);
+          return false;
+        }
+      }
     }
     // Other errors (rate limits, outages) are temporary: don't hide the button for them.
     return true;

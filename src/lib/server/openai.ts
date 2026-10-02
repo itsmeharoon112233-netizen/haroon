@@ -26,11 +26,13 @@ export interface StreamOpenAIOptions {
   fetchImpl?: typeof fetch;
 }
 
-function classifyOpenAIError(status: number, code?: string, message?: string) {
+export function classifyOpenAIError(status: number, code?: string, message?: string) {
   const msg = (message ?? "").toLowerCase();
   if (status === 401 || status === 403 || code === "invalid_api_key") return "invalid_api_key" as const;
   // No credit left on the OpenAI account: a setup problem for the site owner.
-  if (code === "insufficient_quota" || msg.includes("quota")) return "invalid_api_key" as const;
+  if (code === "insufficient_quota" || code === "credit_balance_exhausted" || msg.includes("quota") || msg.includes("credit")) {
+    return "invalid_api_key" as const;
+  }
   if (status === 429) return "rate_limited" as const;
   if (code === "context_length_exceeded" || msg.includes("maximum context length")) return "too_long" as const;
   if (status === 400) return "bad_request" as const;
