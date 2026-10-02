@@ -18,7 +18,17 @@ async function keyWorks(apiKey: string): Promise<boolean> {
       signal: AbortSignal.timeout(8_000),
     });
     if (res.status === 401 || res.status === 403) {
-      console.error(`[status] Claude rejected the API key (${res.status})`);
+      // Describe the key's shape (never the key itself) to help spot copy/paste mistakes.
+      const raw = process.env.ANTHROPIC_API_KEY ?? "";
+      const shape = {
+        length: raw.length,
+        // The first 13 characters of a real key are the public prefix "sk-ant-api03-".
+        startsWith: raw.slice(0, 13),
+        hasSpacesOrNewlines: /\s/.test(raw),
+        hasQuotes: /["'`]/.test(raw),
+        nonAscii: /[^\x20-\x7e]/.test(raw),
+      };
+      console.error(`[status] Claude rejected the API key (${res.status}) shape=${JSON.stringify(shape)}`);
       return false;
     }
     // Other errors (rate limits, outages) are temporary: don't hide the button for them.
