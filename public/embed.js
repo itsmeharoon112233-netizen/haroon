@@ -93,6 +93,18 @@
     }
   });
 
-  document.body.appendChild(panel);
-  document.body.appendChild(btn);
+  // Only show the chat button once the assistant is fully set up (API key added),
+  // so visitors never see a broken chat.
+  fetch(origin + "/api/status", { cache: "no-store" })
+    .then(function (r) {
+      return r.ok ? r.json() : { ready: false };
+    })
+    .then(function (s) {
+      if (!s || !s.ready) return;
+      document.body.appendChild(panel);
+      document.body.appendChild(btn);
+    })
+    .catch(function () {
+      /* chat service unreachable: keep the button hidden */
+    });
 })();
