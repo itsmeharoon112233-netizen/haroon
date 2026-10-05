@@ -15,3 +15,14 @@ export function providerForKey(key: string): Provider {
   if (key.startsWith("sk-")) return "openai";
   return "claude";
 }
+
+/** Which company a key comes from, judged only by its public prefix (for logs). */
+export function describeKey(key: string): string {
+  if (key.startsWith("sk-ant-")) return "Claude (Anthropic)";
+  if (key.startsWith("xai-")) return "Grok (xAI)";
+  if (key.startsWith("gsk_")) return "Groq (not Grok)";
+  if (key.startsWith("AIza")) return "Google Gemini";
+  if (key.startsWith("sk-or-")) return "OpenRouter";
+  if (key.startsWith("sk-")) return "OpenAI";
+  return "unknown type";
+}

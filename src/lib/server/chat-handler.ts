@@ -2,7 +2,7 @@ import { SYSTEM_PROMPT } from "../../config/ai";
 import type { ChatStreamEvent, ErrorCode } from "../../types/chat";
 import { openClaudeStream } from "./claude";
 import { openOpenAIStream } from "./openai";
-import { getConfiguredKey, providerForKey } from "./provider";
+import { describeKey, getConfiguredKey, providerForKey } from "./provider";
 import { ChatError, ERROR_STATUS, FRIENDLY_ERRORS } from "./errors";
 import { createRateLimiter, getClientIp } from "./rate-limit";
 import { validateMessages } from "./validation";
@@ -70,7 +70,9 @@ export function createChatHandler(options: ChatHandlerOptions = {}) {
         return new Response(null, { status: 499 });
       }
       const code: ErrorCode = err instanceof ChatError ? err.code : "server";
-      log(`upstream error: ${err instanceof ChatError ? err.detail : (err as Error).message}`);
+      log(
+        `upstream error (key type: ${describeKey(apiKey)}, length ${apiKey.length}): ${err instanceof ChatError ? err.detail : (err as Error).message}`,
+      );
       return errorResponse(code);
     }
 
