@@ -16,6 +16,13 @@ export const openaiConfig = {
   timeoutMs: 115_000,
 } as const;
 
+/** xAI (Grok) speaks the same chat-completions format. Used for keys starting "xai-". */
+export const xaiConfig = {
+  model: process.env.XAI_MODEL?.trim() || "grok-4-fast",
+  apiUrl: "https://api.x.ai/v1/chat/completions",
+  maxTokens: 4000,
+} as const;
+
 export interface StreamOpenAIOptions {
   apiKey: string;
   system: string;
@@ -24,6 +31,8 @@ export interface StreamOpenAIOptions {
   apiUrl?: string;
   model?: string;
   fetchImpl?: typeof fetch;
+  /** "openai" (default) or "xai" for Grok. */
+  vendor?: "openai" | "xai";
 }
 
 export function classifyOpenAIError(status: number, code?: string, message?: string) {
@@ -47,22 +56,32 @@ export async function openOpenAIStream(
   const fetchImpl = opts.fetchImpl ?? fetch;
   const timeout = AbortSignal.timeout(openaiConfig.timeoutMs);
   const signal = opts.signal ? AbortSignal.any([opts.signal, timeout]) : timeout;
-  const model = opts.model ?? openaiConfig.model;
-  const isReasoningModel = /^(gpt-5|gpt-6|o\d)/.test(model);
-
-  let res: Response;
-  try {
-    res = await fetchImpl(opts.apiUrl ?? openaiConfig.apiUrl, {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${opts.apiKey}` },
-      body: JSON.stringify({
+  const isXai = opts.vendor === "xai";
+  const model = opts.model ?? (isXai ? xaiConfig.model : openaiConfig.model);
+  const isReasoningModel = !isXai && /^(gpt-5|gpt-6|o\d)/.test(model);
+  const body = isXai
+    ? {
+        model,
+        messages: [{ role: "system", content: opts.system }, ...opts.messages],
+        max_tokens: xaiConfig.maxTokens,
+        stream: true,
+        stream_options: { include_usage: true },
+      }
+    : {
         model,
         messages: [{ role: isReasoningModel ? "developer" : "system", content: opts.system }, ...opts.messages],
         max_completion_tokens: openaiConfig.maxCompletionTokens,
         ...(isReasoningModel ? { reasoning_effort: "low" } : {}),
         stream: true,
         stream_options: { include_usage: true },
-      }),
+      };
+
+  let res: Response;
+  try {
+    res = await fetchImpl(opts.apiUrl ?? (isXai ? xaiConfig.apiUrl : openaiConfig.apiUrl), {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${opts.apiKey}` },
+      body: JSON.stringify(body),
       signal,
     });
   } catch (err) {

@@ -43,7 +43,7 @@ export function createChatHandler(options: ChatHandlerOptions = {}) {
 
     const apiKey = getApiKey()?.trim();
     if (!apiKey) {
-      log("No API key is set (ANTHROPIC_API_KEY or OPENAI_API_KEY)");
+      log("No API key is set (ANTHROPIC_API_KEY, OPENAI_API_KEY or XAI_API_KEY)");
       return errorResponse("missing_api_key");
     }
 
@@ -60,10 +60,11 @@ export function createChatHandler(options: ChatHandlerOptions = {}) {
         apiUrl: options.apiUrl,
         fetchImpl: options.fetchImpl,
       };
+      const provider = providerForKey(apiKey);
       events =
-        providerForKey(apiKey) === "openai"
-          ? await openOpenAIStream(streamOptions)
-          : await openClaudeStream(streamOptions);
+        provider === "claude"
+          ? await openClaudeStream(streamOptions)
+          : await openOpenAIStream({ ...streamOptions, vendor: provider });
     } catch (err) {
       if (upstreamAbort.signal.aborted && !(err instanceof ChatError)) {
         return new Response(null, { status: 499 });

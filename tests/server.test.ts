@@ -344,3 +344,30 @@ describe("OpenAI provider (sk- keys)", () => {
     }
   });
 });
+
+describe("Grok provider (xai- keys)", () => {
+  it("sends Grok requests to api.x.ai in chat-completions format", async () => {
+    let url = "";
+    let sent: any = null;
+    const fetchImpl = (async (u: string, init: RequestInit) => {
+      url = u;
+      sent = JSON.parse(init.body as string);
+      const body = new ReadableStream<Uint8Array>({
+        start(c) {
+          const enc = new TextEncoder();
+          c.enqueue(enc.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: "Hi from Grok" }, finish_reason: "stop" }] })}\n\n`));
+          c.enqueue(enc.encode("data: [DONE]\n\n"));
+          c.close();
+        },
+      });
+      return new Response(body, { headers: { "content-type": "text/event-stream" } });
+    }) as typeof fetch;
+    const h = createChatHandler({ getApiKey: () => "xai-abc", fetchImpl, log: () => {} });
+    const events = await readNdjson(await h(chatRequest([{ role: "user", content: "hi" }])));
+    assert.equal(url, "https://api.x.ai/v1/chat/completions");
+    assert.match(sent.model, /^grok/);
+    assert.equal(sent.messages[0].role, "system");
+    assert.equal(sent.max_completion_tokens, undefined);
+    assert.equal(events.filter((e) => e.type === "text").map((e: any) => e.text).join(""), "Hi from Grok");
+  });
+});

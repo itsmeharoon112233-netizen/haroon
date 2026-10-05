@@ -20,7 +20,12 @@ async function keyWorks(apiKey: string): Promise<boolean> {
   try {
     // Listing models is free and confirms the key is valid.
     const res =
-      provider === "openai"
+      provider === "xai"
+        ? await fetch("https://api.x.ai/v1/models", {
+            headers: { authorization: `Bearer ${apiKey}` },
+            signal: AbortSignal.timeout(8_000),
+          })
+        : provider === "openai"
         ? await fetch("https://api.openai.com/v1/models", {
             headers: { authorization: `Bearer ${apiKey}` },
             signal: AbortSignal.timeout(8_000),

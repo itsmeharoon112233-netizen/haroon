@@ -1,14 +1,17 @@
 /**
  * Picks the AI provider from the configured key, so the site owner only has
- * to paste one key. Claude keys start with "sk-ant-"; OpenAI keys with "sk-".
- * Either env var name works: ANTHROPIC_API_KEY or OPENAI_API_KEY.
+ * to paste one key. Claude keys start with "sk-ant-", Grok (xAI) keys with "xai-",
+ * OpenAI keys with "sk-". Any of ANTHROPIC_API_KEY, OPENAI_API_KEY or XAI_API_KEY works.
  */
-export type Provider = "claude" | "openai";
+export type Provider = "claude" | "openai" | "xai";
 
 export function getConfiguredKey(): string {
-  return (process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || "").trim();
+  return (process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.XAI_API_KEY || "").trim();
 }
 
 export function providerForKey(key: string): Provider {
-  return key.startsWith("sk-ant-") ? "claude" : key.startsWith("sk-") ? "openai" : "claude";
+  if (key.startsWith("sk-ant-")) return "claude";
+  if (key.startsWith("xai-")) return "xai";
+  if (key.startsWith("sk-")) return "openai";
+  return "claude";
 }
