@@ -16,6 +16,13 @@ export const openaiConfig = {
   timeoutMs: 115_000,
 } as const;
 
+/** Google Gemini (AI Studio keys) via Google's OpenAI-compatible endpoint. Has a free tier. */
+export const geminiConfig = {
+  model: process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash-lite",
+  apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+  maxTokens: 4000,
+} as const;
+
 /** xAI (Grok) speaks the same chat-completions format. Used for keys starting "xai-". */
 export const xaiConfig = {
   model: process.env.XAI_MODEL?.trim() || "grok-4-fast",
@@ -31,13 +38,16 @@ export interface StreamOpenAIOptions {
   apiUrl?: string;
   model?: string;
   fetchImpl?: typeof fetch;
-  /** "openai" (default) or "xai" for Grok. */
-  vendor?: "openai" | "xai";
+  /** "openai" (default), "xai" for Grok, or "gemini" for Google. */
+  vendor?: "openai" | "xai" | "gemini";
 }
 
 export function classifyOpenAIError(status: number, code?: string, message?: string) {
   const msg = (message ?? "").toLowerCase();
   if (status === 401 || status === 403 || code === "invalid_api_key") return "invalid_api_key" as const;
+  if (msg.includes("api key not valid") || msg.includes("api_key_invalid") || msg.includes("invalid api key")) {
+    return "invalid_api_key" as const;
+  }
   // No credit left on the OpenAI account: a setup problem for the site owner.
   if (code === "insufficient_quota" || code === "credit_balance_exhausted" || msg.includes("quota") || msg.includes("credit")) {
     return "invalid_api_key" as const;
@@ -56,14 +66,15 @@ export async function openOpenAIStream(
   const fetchImpl = opts.fetchImpl ?? fetch;
   const timeout = AbortSignal.timeout(openaiConfig.timeoutMs);
   const signal = opts.signal ? AbortSignal.any([opts.signal, timeout]) : timeout;
-  const isXai = opts.vendor === "xai";
-  const model = opts.model ?? (isXai ? xaiConfig.model : openaiConfig.model);
-  const isReasoningModel = !isXai && /^(gpt-5|gpt-6|o\d)/.test(model);
-  const body = isXai
+  const vendor = opts.vendor ?? "openai";
+  const other = vendor === "xai" ? xaiConfig : vendor === "gemini" ? geminiConfig : null;
+  const model = opts.model ?? (other ? other.model : openaiConfig.model);
+  const isReasoningModel = !other && /^(gpt-5|gpt-6|o\d)/.test(model);
+  const body = other
     ? {
         model,
         messages: [{ role: "system", content: opts.system }, ...opts.messages],
-        max_tokens: xaiConfig.maxTokens,
+        max_tokens: other.maxTokens,
         stream: true,
         stream_options: { include_usage: true },
       }
@@ -78,7 +89,7 @@ export async function openOpenAIStream(
 
   let res: Response;
   try {
-    res = await fetchImpl(opts.apiUrl ?? (isXai ? xaiConfig.apiUrl : openaiConfig.apiUrl), {
+    res = await fetchImpl(opts.apiUrl ?? (other ? other.apiUrl : openaiConfig.apiUrl), {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${opts.apiKey}` },
       body: JSON.stringify(body),
@@ -94,15 +105,17 @@ export async function openOpenAIStream(
     let code: string | undefined;
     let message: string | undefined;
     try {
-      const json = (await res.json()) as { error?: { code?: string; type?: string; message?: string } };
-      code = json.error?.code ?? json.error?.type;
+      const raw = (await res.json()) as unknown;
+      // Gemini sometimes wraps the error in an array.
+      const json = (Array.isArray(raw) ? raw[0] : raw) as { error?: { code?: string | number; type?: string; status?: string; message?: string } };
+      code = String(json.error?.status ?? json.error?.type ?? json.error?.code ?? "");
       message = json.error?.message;
     } catch {
       /* non-JSON error body */
     }
     throw new ChatError(
       classifyOpenAIError(res.status, code, message),
-      `openai ${res.status} ${code ?? ""} ${message ?? ""}`.trim(),
+      `${vendor} ${res.status} ${code ?? ""} ${message ?? ""}`.trim(),
     );
   }
 

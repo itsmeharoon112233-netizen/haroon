@@ -20,7 +20,12 @@ async function keyWorks(apiKey: string): Promise<boolean> {
   try {
     // Listing models is free and confirms the key is valid.
     const res =
-      provider === "xai"
+      provider === "gemini"
+        ? await fetch("https://generativelanguage.googleapis.com/v1beta/openai/models", {
+            headers: { authorization: `Bearer ${apiKey}` },
+            signal: AbortSignal.timeout(8_000),
+          })
+        : provider === "xai"
         ? await fetch("https://api.x.ai/v1/models", {
             headers: { authorization: `Bearer ${apiKey}` },
             signal: AbortSignal.timeout(8_000),

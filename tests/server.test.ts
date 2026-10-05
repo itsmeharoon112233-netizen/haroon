@@ -371,3 +371,36 @@ describe("Grok provider (xai- keys)", () => {
     assert.equal(events.filter((e) => e.type === "text").map((e: any) => e.text).join(""), "Hi from Grok");
   });
 });
+
+describe("Gemini provider (Google AI Studio keys)", () => {
+  it("routes non-sk keys to Google's OpenAI-compatible endpoint", async () => {
+    let url = "";
+    let auth = "";
+    const fetchImpl = (async (u: string, init: RequestInit) => {
+      url = u;
+      auth = (init.headers as Record<string, string>).authorization;
+      const body = new ReadableStream<Uint8Array>({
+        start(c) {
+          const enc = new TextEncoder();
+          c.enqueue(enc.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: "Hi from Gemini" }, finish_reason: "stop" }] })}\n\n`));
+          c.enqueue(enc.encode("data: [DONE]\n\n"));
+          c.close();
+        },
+      });
+      return new Response(body, { headers: { "content-type": "text/event-stream" } });
+    }) as typeof fetch;
+    const h = createChatHandler({ getApiKey: () => "AQ.Ab8RN6exampleexampleexampleexampleexample", fetchImpl, log: () => {} });
+    const events = await readNdjson(await h(chatRequest([{ role: "user", content: "hi" }])));
+    assert.match(url, /generativelanguage\.googleapis\.com\/v1beta\/openai\/chat\/completions$/);
+    assert.match(auth, /^Bearer AQ\./);
+    assert.equal(events.filter((e) => e.type === "text").map((e: any) => e.text).join(""), "Hi from Gemini");
+  });
+
+  it("maps Google's 'API key not valid' (array-wrapped 400) to a setup error", async () => {
+    const fetchImpl = (async () =>
+      Response.json([{ error: { code: 400, status: "INVALID_ARGUMENT", message: "API key not valid. Please pass a valid API key." } }], { status: 400 })) as unknown as typeof fetch;
+    const h = createChatHandler({ getApiKey: () => "AIzaFakeKey", fetchImpl, log: () => {} });
+    const res = await h(chatRequest([{ role: "user", content: "hi" }]));
+    assert.equal((await res.json()).error.code, "invalid_api_key");
+  });
+});
